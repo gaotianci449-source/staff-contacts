@@ -1,6 +1,6 @@
 // 离线缓存：第一次联网打开后，没网也能用。
 // 更新网页后把 VERSION 改一下，同事下次联网打开就会自动换成新版。
-const VERSION = 'sc-v1';
+const VERSION = 'sc-v2';
 const FILES = ['./', './index.html', './manifest.webmanifest', './icon-180.png', './icon-192.png', './icon-512.png', './icon-maskable-512.png'];
 
 self.addEventListener('install', e => {

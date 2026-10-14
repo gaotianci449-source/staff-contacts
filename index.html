@@ -148,6 +148,13 @@ svg{display:block}
 .exrow .nm b{display:block;font-weight:500}
 .exrow .nm span{font-size:13px;color:var(--sub)}
 
+.maprow{display:flex;align-items:center;gap:12px;min-height:56px;padding:8px 12px 8px 20px}
+.maprow+.maprow{border-top:1px solid var(--line)}
+.maprow>span:first-child{flex:none;width:76px;font-size:15px}
+.maprow i{display:block;font-style:normal;font-size:12px;color:var(--hint)}
+select{flex:1;min-width:0;height:44px;border-radius:12px;border:1px solid var(--border);background:var(--card);color:var(--ink);font:inherit;font-size:16px;padding:0 10px;-webkit-appearance:none;appearance:none;background-image:linear-gradient(45deg,transparent 50%,var(--sub) 50%),linear-gradient(135deg,var(--sub) 50%,transparent 50%);background-position:calc(100% - 18px) 19px,calc(100% - 13px) 19px;background-size:5px 5px;background-repeat:no-repeat;padding-right:30px}
+.fld select{flex:none;width:100%}
+.chkrow.maprow{gap:12px}
 /* 弹层 */
 .ov{position:fixed;inset:0;z-index:20;background:rgba(27,36,32,.45);display:flex;flex-direction:column;justify-content:flex-end;animation:fade .15s ease}
 .sheet{background:var(--card);border-radius:24px 24px 0 0;padding:10px 16px calc(28px + var(--sb));max-height:80%;display:flex;flex-direction:column;animation:up .2s ease}
@@ -305,40 +312,162 @@ function exportCsv(k) {
 const today = () => { const d = new Date(); return '' + d.getFullYear() + String(d.getMonth() + 1).padStart(2, '0') + String(d.getDate()).padStart(2, '0'); };
 const csvName = k => (k === 'EMP' ? '员工名单_' : '设备与车辆名单_') + today() + '.csv';
 const backupName = () => `员工联系方式备份_${today()}.json`;
-const HEADER_WORDS = ['工票', '工号', '名字', '姓名', '手机', '电话', '号码', '车辆', '编号', '车号', '分类', '类别', '备注', '营地'];
-function importCsv(k, text) {
-  const rows = parseCsv(text);
-  if (!rows.length) return { added: 0, updated: 0, skipped: 0 };
-  const head = rows[0];
-  const hasHeader = head.some(h => HEADER_WORDS.some(w => h.includes(w)));
-  const col = (def, ...keys) => hasHeader ? head.findIndex(h => keys.some(w => h.includes(w))) : def;
-  const data = hasHeader ? rows.slice(1) : rows;
-  const at = (r, i) => (i >= 0 && i < r.length) ? r[i] : '';
-  const inc = []; let skipped = 0;
-  const catVal = (v, old) => { v = v.trim(); if (v === UNCAT) v = ''; return v || (old ? old.cat : ''); };
-  if (k === 'EMP') {
-    const cC = col(0, '工票', '工号'), cN = col(1, '名字', '姓名'), cP = col(2, '手机', '电话', '号码'), cK = col(3, '分类', '类别', '工种');
-    data.forEach(r => {
-      const code = cleanCode(at(r, cC)), name = at(r, cN).trim();
-      if (!code || !name) { skipped++; return; }
-      const old = findByCode(k, code);
-      inc.push({ id: '', kind: k, code, name, phone: cleanPhone(at(r, cP)) || (old ? old.phone : ''), note: '', cat: catVal(at(r, cK), old) });
-    });
-  } else {
-    const cC = col(0, '编号', '车号', '车牌'), cK = col(1, '分类', '类别', '车型'), cT = col(2, '备注', '营地', '位置');
-    data.forEach(r => {
-      const code = cleanCode(at(r, cC));
-      if (!code) { skipped++; return; }
-      const old = findByCode(k, code);
-      inc.push({ id: '', kind: k, code, name: '', phone: '', note: at(r, cT).trim() || (old ? old.note : ''), cat: catVal(at(r, cK), old) });
-    });
+/* ========= 读取 xlsx（用浏览器自带的解压，不需要第三方库） ========= */
+async function unzip(buf) {
+  const dv = new DataView(buf), td = new TextDecoder();
+  let eocd = -1;
+  for (let i = buf.byteLength - 22; i >= Math.max(0, buf.byteLength - 65557); i--) { if (dv.getUint32(i, true) === 0x06054b50) { eocd = i; break; } }
+  if (eocd < 0) throw new Error('不是有效的 xlsx 文件');
+  const n = dv.getUint16(eocd + 10, true); let off = dv.getUint32(eocd + 16, true);
+  const ents = {};
+  for (let k = 0; k < n; k++) {
+    if (dv.getUint32(off, true) !== 0x02014b50) break;
+    const method = dv.getUint16(off + 10, true), csize = dv.getUint32(off + 20, true);
+    const nlen = dv.getUint16(off + 28, true), elen = dv.getUint16(off + 30, true), clen = dv.getUint16(off + 32, true), lho = dv.getUint32(off + 42, true);
+    ents[td.decode(new Uint8Array(buf, off + 46, nlen))] = { method, csize, lho };
+    off += 46 + nlen + elen + clen;
   }
-  const map = new Map(); inc.forEach(r => map.set(norm(r.code), r));
-  skipped += inc.length - map.size;
-  const [added, updated] = merge(k, [...map.values()], [], false);
-  return { added, updated, skipped };
+  return async name => {
+    const e = ents[name]; if (!e) return null;
+    const nl = dv.getUint16(e.lho + 26, true), el = dv.getUint16(e.lho + 28, true);
+    const data = new Uint8Array(buf, e.lho + 30 + nl + el, e.csize);
+    if (e.method === 0) return td.decode(data);
+    if (e.method !== 8) throw new Error('不支持的压缩方式');
+    if (typeof DecompressionStream === 'undefined') throw new Error('手机系统版本太旧，读不了 xlsx，请升级系统，或把表格另存为 CSV 再导入');
+    const stream = new Blob([data]).stream().pipeThrough(new DecompressionStream('deflate-raw'));
+    return td.decode(await new Response(stream).arrayBuffer());
+  };
+}
+const colIndex = ref => { let n = 0; for (const ch of ref) { const c = ch.charCodeAt(0); if (c < 65 || c > 90) break; n = n * 26 + c - 64; } return n - 1; };
+async function openXlsx(buf) {
+  const read = await unzip(buf);
+  const P = x => new DOMParser().parseFromString(x, 'application/xml');
+  const wb = P(await read('xl/workbook.xml')), rels = P(await read('xl/_rels/workbook.xml.rels') || '<r/>');
+  const target = {};
+  for (const r of rels.getElementsByTagName('Relationship')) target[r.getAttribute('Id')] = r.getAttribute('Target');
+  const RNS = 'http://schemas.openxmlformats.org/officeDocument/2006/relationships';
+  const sheets = [...wb.getElementsByTagName('sheet')].map(el => {
+    const t = target[el.getAttributeNS(RNS, 'id') || el.getAttribute('r:id')] || '';
+    return { name: el.getAttribute('name'), path: t.startsWith('/') ? t.slice(1) : 'xl/' + t.replace(/^\.\//, '') };
+  });
+  let shared = null;
+  const sst = async () => {
+    if (shared) return shared;
+    shared = [];
+    const x = await read('xl/sharedStrings.xml');
+    if (x) for (const si of P(x).getElementsByTagName('si')) {
+      let v = ''; for (const t of si.getElementsByTagName('t')) { const pn = t.parentNode.localName; if (pn === 'si' || pn === 'r') v += t.textContent; }
+      shared.push(v);
+    }
+    return shared;
+  };
+  return {
+    names: sheets.map(x => x.name),
+    async rows(name) {
+      const sh = sheets.find(x => x.name === name); if (!sh) return [];
+      const ss = await sst(), doc = P(await read(sh.path) || '<r/>'), out = [];
+      for (const row of doc.getElementsByTagName('row')) {
+        const ri = (+row.getAttribute('r') || out.length + 1) - 1, arr = [];
+        let ci = -1;
+        for (const c of row.getElementsByTagName('c')) {
+          const ref = c.getAttribute('r'); ci = ref ? colIndex(ref) : ci + 1;
+          const t = c.getAttribute('t'), ve = c.getElementsByTagName('v')[0];
+          let v = '';
+          if (t === 's') v = ve ? (ss[+ve.textContent] || '') : '';
+          else if (t === 'inlineStr') v = [...c.getElementsByTagName('t')].map(x => x.textContent).join('');
+          else if (ve) { v = ve.textContent; if (t !== 'str' && /^-?\d+(\.\d+)?(e[+-]?\d+)?$/i.test(v)) { const num = Number(v); if (Number.isInteger(num)) v = String(num); } }
+          v = v.trim(); if (v) arr[ci] = v;
+        }
+        out[ri] = arr;
+      }
+      for (let i = 0; i < out.length; i++) if (!out[i]) out[i] = [];
+      return out;
+    }
+  };
 }
 
+/* ========= 导入：自动找表头和对应的列，先预览再导入 ========= */
+const FIELDS = {
+  EMP: [
+    { key: 'code', label: '工票号', need: true, kw: ['工票号', '工号', '工票', '编号'], ex: ['档案', '身份证', '证件'] },
+    { key: 'name', label: '名字', need: true, kw: ['姓名', '名字', '名称'], ex: ['领工', '工长', '联系人', '中方', '负责人'] },
+    { key: 'phone', label: '手机号', kw: ['手机号', '电话', '手机', '联系电话', '号码'], ex: ['紧急', '领工', '身份证', '证件'], none: '不导入' },
+    { key: 'cat', label: '分类', kw: ['分类', '类别', '工种'], ex: [], none: '不导入分类' },
+    { key: 'status', label: '在岗状态', kw: ['状态', '在岗'], ex: [], none: '不筛选' }
+  ],
+  VEH: [
+    { key: 'code', label: '编号', need: true, kw: ['编号', '车号', '车牌', '设备号'], ex: ['档案', '身份证'] },
+    { key: 'cat', label: '分类', kw: ['分类', '类别', '车型', '类型'], ex: [], none: '不导入分类' },
+    { key: 'note', label: '备注', kw: ['备注', '营地', '位置', '所在'], ex: [], none: '不导入' },
+    { key: 'status', label: '状态', kw: ['状态'], ex: [], none: '不筛选' }
+  ]
+};
+function colScore(h, f) {
+  h = String(h || '').replace(/\s/g, ''); if (!h || f.ex.some(e => h.includes(e))) return 0;
+  let best = 0;
+  f.kw.forEach((w, i) => { if (h === w) best = Math.max(best, 100 - i); else if (h.includes(w)) best = Math.max(best, 50 - i); });
+  return best;
+}
+function bestCol(head, f) {
+  let bi = -1, bs = 0;
+  head.forEach((h, i) => { const sc = colScore(h, f); if (sc > bs) { bs = sc; bi = i; } });
+  return bi;
+}
+function guessLayout(k, rows) {
+  const F = FIELDS[k];
+  let hdr = -1, best = 0;
+  for (let i = 0; i < Math.min(10, rows.length); i++) {
+    const head = rows[i] || [];
+    const n = F.filter(f => bestCol(head, f) >= 0).length;
+    if (n > best) { best = n; hdr = i; }
+  }
+  if (best < (k === 'EMP' ? 2 : 1)) hdr = -1;
+  const map = {};
+  F.forEach((f, i) => { map[f.key] = hdr >= 0 ? bestCol(rows[hdr], f) : (i < (k === 'EMP' ? 4 : 3) ? i : -1); });
+  return { hdr, map };
+}
+const isActive = s => /在岗|在职/.test(s) && !/非|不|离|停/.test(s);
+function importPhone(v) {
+  const raw = String(v || '').trim(); if (!raw) return '';
+  let s = raw.split(/[\/,，;；、]/)[0].replace(/[\s\-.()（）]/g, '').replace(/^(\+|00)245/, '');
+  if (/^\d{6,}$/.test(s)) return s;
+  const m = raw.match(/\d{8,}/); return m ? m[0].replace(/^245(?=\d{9}$)/, '') : '';
+}
+function buildImport(st) {
+  const k = st.k, m = st.map, rows = st.rows;
+  const g = (r, i) => i >= 0 ? String(r[i] == null ? '' : r[i]).trim() : '';
+  const recs = []; let skipped = 0, filtered = 0;
+  rows.slice(st.hdr + 1).forEach(r => {
+    if (!r || !r.some(x => x)) return;
+    if (m.status >= 0 && st.onlyActive && !isActive(g(r, m.status))) { filtered++; return; }
+    const code = cleanCode(g(r, m.code)), name = g(r, m.name);
+    if (!code || (k === 'EMP' && !name)) { skipped++; return; }
+    let cat = g(r, m.cat); if (cat === UNCAT) cat = '';
+    recs.push({ id: '', kind: k, code, name: k === 'EMP' ? name : '', phone: k === 'EMP' ? importPhone(g(r, m.phone)) : '', note: k === 'VEH' ? g(r, m.note) : '', cat });
+  });
+  const byCode = new Map(); recs.forEach(r => byCode.set(norm(r.code), r));
+  const list = [...byCode.values()];
+  let add = 0, upd = 0;
+  list.forEach(r => { const old = findByCode(k, r.code); if (old) { upd++; r.phone = r.phone || old.phone; r.note = r.note || old.note; r.cat = r.cat || old.cat; } else add++; });
+  return { list, skipped, filtered, dup: recs.length - list.length, add, upd };
+}
+async function startImport(k, buf, fileName) {
+  try {
+    const bytes = new Uint8Array(buf);
+    let book;
+    if (bytes[0] === 0x50 && bytes[1] === 0x4B) { toast('正在读取表格…'); book = await openXlsx(buf); }
+    else { const text = decodeBytes(buf); book = { names: ['CSV'], rows: async () => parseCsv(text) }; }
+    if (!book.names.length) throw new Error('表格里没有工作表');
+    const st = { s: 'imp', k, book, fileName, sheet: book.names[0] };
+    await loadSheet(st);
+    push(st);
+  } catch (e) { showInfo('读不了这个文件', (e && e.message) || '请确认是 xlsx 或 CSV 格式的表格。'); }
+}
+async function loadSheet(st) {
+  st.rows = await st.book.rows(st.sheet);
+  Object.assign(st, guessLayout(st.k, st.rows));
+  st.onlyActive = st.map.status >= 0;
+}
 /* ========= 文件：发送 / 保存 / 选择 ========= */
 async function shareFile(name, text, mime) {
   const file = new File([text], name, { type: mime });
@@ -357,7 +486,7 @@ function downloadFile(name, text, mime) {
 }
 function pickFile(cb) {
   const inp = document.createElement('input'); inp.type = 'file'; inp.style.display = 'none';
-  inp.onchange = () => { const f = inp.files && inp.files[0]; inp.remove(); if (f) f.arrayBuffer().then(cb).catch(() => alert('读不到这个文件，请换一个文件再试。')); };
+  inp.onchange = () => { const f = inp.files && inp.files[0]; inp.remove(); if (f) f.arrayBuffer().then(buf => cb(buf, f.name)).catch(() => alert('读不到这个文件，请换一个文件再试。')); };
   document.body.appendChild(inp); inp.click();
 }
 
@@ -404,7 +533,7 @@ function toast(msg) { const t = document.getElementById('toast'); t.textContent 
 function render() {
   const t = top_();
   if (t.s === 'detail' && !get(t.id)) { back(); return; }
-  ({ home: renderHome, list: renderList, detail: renderDetail, edit: renderEdit, cats: renderCats, io: renderIo, backup: renderBackup })[t.s](t);
+  ({ home: renderHome, list: renderList, detail: renderDetail, edit: renderEdit, cats: renderCats, io: renderIo, backup: renderBackup, imp: renderImp })[t.s](t);
 }
 
 function renderHome() {
@@ -636,9 +765,8 @@ function renderIo() {
     <div class="scroll pad" style="padding-top:0">
       <div class="label">从表格导入</div>
       <div class="box">
-        <p>在 WPS 或 Excel 里把名单另存为 CSV 文件，第一行写表头：</p>
-        <p class="em">员工：工票号、名字、手机号、分类<br>设备与车辆：编号、分类、备注</p>
-        <p class="sm">列的顺序可以不同，按表头认。编号已存在的会更新，没有的会新增；表里出现的新分类会自动加上。</p>
+        <p>直接选 WPS / Excel 表格（xlsx 或 CSV）。程序会自动找表头和对应的列，导入前先给你看预览。</p>
+        <p class="sm">编号已存在的会更新，没有的会新增；表里出现的新分类会自动加上。</p>
         <button class="btn" data-act="csvImport" data-k="EMP" style="margin-top:4px">导入员工名单</button>
         <button class="btn2" data-act="csvImport" data-k="VEH">导入设备与车辆名单</button>
       </div>
@@ -646,6 +774,49 @@ function renderIo() {
       <div class="group">${row('EMP')}${row('VEH')}</div>
       <p class="note" style="margin-top:12px">「发送」可以直接发到微信；导出的文件用 WPS、Excel 都能打开。</p>
     </div></div>`;
+}
+
+/* ---- 导入预览 ---- */
+function renderImp(t) {
+  const k = t.k, K = KINDS[k], F = FIELDS[k], res = buildImport(t);
+  const head = t.hdr >= 0 ? t.rows[t.hdr] : [];
+  const width = Math.min(200, Math.max(head.length, ...t.rows.slice(t.hdr + 1, t.hdr + 30).map(r => r.length), 0));
+  const colName = i => { const h = String(head[i] || '').trim(); return `第 ${i + 1} 列` + (h ? ` · ${h}` : ''); };
+  const cols = []; for (let i = 0; i < width; i++) if (t.hdr < 0 || String(head[i] || '').trim()) cols.push(i);
+  const sel = f => `<select data-map="${f.key}" aria-label="${f.label}">
+      ${f.need ? '' : `<option value="-1">${f.none}</option>`}
+      ${f.need && t.map[f.key] < 0 ? '<option value="-1">（请选择）</option>' : ''}
+      ${cols.map(i => `<option value="${i}" ${t.map[f.key] === i ? 'selected' : ''}>${esc(colName(i))}</option>`).join('')}</select>`;
+  const ready = F.filter(f => f.need).every(f => t.map[f.key] >= 0);
+  const preview = res.list.slice(0, 5).map(r => `<div class="row"><div class="main" style="cursor:default"><span class="tx"><span class="t">${esc(title(r))}</span>
+      <span class="s">${k === 'EMP' ? `<b class="num">${esc(r.code)}</b><span class="num">${r.phone ? esc(fmtPhone(r.phone)) : '无号码'}</span>` : ''}<span>${esc(r.cat || UNCAT)}</span>${k === 'VEH' && r.note ? `<span>${esc(r.note)}</span>` : ''}</span></span></div></div>`).join('');
+  const sc = document.getElementById('impScroll'), keep = sc ? sc.scrollTop : 0;
+  app.innerHTML = `<div class="screen">
+    <div class="bar"><button class="iconbtn" data-act="back" aria-label="返回">${I.back}</button><h2>导入${K.noun}</h2></div>
+    <div class="scroll" id="impScroll"><div class="pad" style="padding-top:0">
+      <div class="label">文件</div>
+      <div class="box">
+        <p style="word-break:break-all">${esc(t.fileName || '')}</p>
+        ${t.book.names.length > 1 ? `<label class="fld"><span>工作表（共 ${t.book.names.length} 个）</span><select data-act-change="sheet" aria-label="工作表">${t.book.names.map(n => `<option ${n === t.sheet ? 'selected' : ''}>${esc(n)}</option>`).join('')}</select></label>` : ''}
+        <p class="sm">${t.hdr >= 0 ? `表头在第 ${t.hdr + 1} 行，下面的对应关系是自动找的，不对可以改。` : '没找到表头，先按第 1、2、3 列猜测，请检查下面的对应关系。'}</p>
+      </div>
+      <div class="label">对应关系</div>
+      <div class="group">${F.map(f => `<div class="maprow"><span>${f.label}${f.need ? '' : '<i>可不选</i>'}</span>${sel(f)}</div>`).join('')}
+        ${t.map.status >= 0 ? `<button class="chkrow maprow" data-act="toggleActive"><span class="chk ${t.onlyActive ? 'on' : ''}">${t.onlyActive ? I.check : ''}</span><span>只导入在岗的${K.item}</span></button>` : ''}
+      </div>
+      <div class="label">结果预览</div>
+      <div class="box">
+        <p class="em num">将导入 ${res.list.length} ${K.unit}：新增 ${res.add}，更新 ${res.upd}</p>
+        <p class="sm num">${[res.filtered ? `不在岗 ${res.filtered} 行` : '', res.skipped ? `缺${F.filter(f => f.need).map(f => f.label).join('或')} ${res.skipped} 行` : '', res.dup ? `编号重复 ${res.dup} 行（保留最后一行）` : ''].filter(Boolean).join('；') || '没有需要跳过的行'}</p>
+        ${res.list.length && t.map.cat >= 0 ? `<p class="sm">表里的分类会自动加到分类列表里。</p>` : ''}
+      </div>
+      ${preview ? `<div class="label">前 ${Math.min(5, res.list.length)} 个</div><div class="rows">${preview}</div>` : ''}
+    </div></div>
+    <div class="foot"><button class="btn" data-act="doImport" ${ready && res.list.length ? '' : 'disabled'}>导入 ${res.list.length} ${K.unit}</button></div></div>`;
+  document.getElementById('impScroll').scrollTop = keep;
+  app.querySelectorAll('select[data-map]').forEach(s => s.addEventListener('change', () => { t.map[s.dataset.map] = +s.value; if (s.dataset.map === 'status') t.onlyActive = +s.value >= 0; renderImp(t); }));
+  const shSel = app.querySelector('select[data-act-change="sheet"]');
+  if (shSel) shSel.addEventListener('change', async () => { t.sheet = shSel.value; toast('正在读取…'); try { await loadSheet(t); } catch (e) { t.rows = []; t.hdr = -1; } renderImp(t); });
 }
 
 /* ---- 交接备份 ---- */
@@ -786,16 +957,13 @@ const A = {
     showConfirm(`删除分类「${c}」？`, n ? `这个分类下的 ${n} ${K.unit}不会被删除，会变成「未分类」。` : `这个分类下没有${K.item}。`, '删除分类', () => { deleteCat(t.k, c); render(); });
   },
   catAdd: () => { const t = top_(); showName(`新建${KINDS[t.k].noun}分类`, '', v => validCat(t.k, v), v => { addCatSilently(t.k, v); save(); render(); }); },
-  csvImport: b => {
-    const k = b.dataset.k, K = KINDS[k];
-    pickFile(buf => {
-      const bytes = new Uint8Array(buf);
-      if (bytes[0] === 0x50 && bytes[1] === 0x4B) { showInfo('导入结果', '这是 xlsx 格式。请先在 WPS / Excel 里「另存为」CSV 格式，再导入那个 CSV 文件。'); return; }
-      const r = importCsv(k, decodeBytes(buf));
-      render();
-      showInfo('导入结果', (r.added === 0 && r.updated === 0) ? `没有导入任何${K.item}。请检查表格的列是否按说明排列。`
-        : `新增 ${r.added} ${K.unit}，更新 ${r.updated} ${K.unit}` + (r.skipped ? `，跳过 ${r.skipped} 行（缺编号${k === 'EMP' ? '或名字' : ''}，或编号重复）` : '') + '。');
-    });
+  csvImport: b => { const k = b.dataset.k; pickFile((buf, name) => startImport(k, buf, name)); },
+  toggleActive: () => { const t = top_(); t.onlyActive = !t.onlyActive; renderImp(t); },
+  doImport: () => {
+    const t = top_(), K = KINDS[t.k], res = buildImport(t);
+    const [a, u] = merge(t.k, res.list, [], false);
+    back();
+    setTimeout(() => showInfo('导入完成', `新增 ${a} ${K.unit}，更新 ${u} ${K.unit}。`), 50);
   },
   csvShare: b => shareFile(csvName(b.dataset.k), exportCsv(b.dataset.k), 'text/csv'),
   csvSave: b => downloadFile(csvName(b.dataset.k), exportCsv(b.dataset.k), 'text/csv'),
