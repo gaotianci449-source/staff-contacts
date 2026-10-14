@@ -1,0 +1,826 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="员工联系方式">
+<meta name="format-detection" content="telephone=no">
+<meta name="theme-color" content="#EEF1EF">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="apple-touch-icon" href="icon-180.png">
+<link rel="icon" type="image/png" href="icon-192.png">
+<title>员工联系方式</title>
+<style>
+:root{
+  --bg:#EEF1EF; --card:#FFFFFF; --ink:#1B2420; --sub:#5F6B66; --hint:#7A8681; --muted:#9AA5A0;
+  --line:#E7ECE9; --border:#D3DAD6; --selbg:#F2F5F3; --green:#1F7A4D; --greenbg:#DDEFE5;
+  --red:#B42318; --redbg:#FBE9E7; --disabled:#B9C2BE;
+  --st:env(safe-area-inset-top,0px); --sb:env(safe-area-inset-bottom,0px);
+}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{margin:0;height:100%;background:var(--bg);color:var(--ink)}
+body{font-family:-apple-system,BlinkMacSystemFont,"PingFang SC","Noto Sans SC","Microsoft YaHei",sans-serif;font-size:16px;overflow:hidden;overscroll-behavior:none}
+button{font:inherit;color:inherit;background:none;border:0;padding:0;cursor:pointer}
+button:disabled{cursor:default}
+input{font:inherit}
+:focus-visible{outline:2px solid var(--green);outline-offset:2px}
+.num{font-variant-numeric:tabular-nums}
+svg{display:block}
+
+.screen{position:fixed;inset:0;display:flex;flex-direction:column;padding-top:var(--st)}
+.scroll{flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch;overscroll-behavior:contain}
+.pad{padding:24px 16px calc(32px + var(--sb))}
+
+.h1{font-size:30px;font-weight:900;margin:24px 4px 28px;letter-spacing:.5px}
+.total{display:flex;align-items:center;width:100%;background:var(--card);border-radius:22px;padding:26px 16px 26px 24px;margin-bottom:12px;text-align:left}
+.total .n{font-size:56px;line-height:1;font-weight:900}
+.total .k{flex:1;font-size:20px;font-weight:700}
+.total .u{font-size:15px;color:var(--sub);margin:16px 8px 0 4px}
+.label{font-size:14px;color:var(--sub);margin:20px 4px 8px}
+.group{background:var(--card);border-radius:18px;overflow:hidden}
+.menu{display:flex;align-items:center;width:100%;min-height:56px;padding:10px 16px 10px 24px;text-align:left}
+.menu+.menu{border-top:1px solid var(--line)}
+.menu .t{flex:1;font-size:16px}
+.menu .s{display:block;font-size:13px;color:var(--sub);margin-top:2px}
+.chev{color:var(--muted);flex:none}
+
+.bar{display:flex;align-items:center;padding:12px 20px 4px 4px;min-height:64px}
+.bar h2{flex:1;margin:0;font-size:26px;font-weight:900;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.bar .trail{font-size:15px;color:var(--sub)}
+.iconbtn{width:48px;height:48px;display:flex;align-items:center;justify-content:center;border-radius:24px;flex:none}
+.selbar{display:flex;align-items:center;padding:12px 4px 4px;min-height:64px}
+.selbar h2{flex:1;margin:0;text-align:center;font-size:20px;font-weight:700}
+.txtbtn{height:48px;padding:0 16px;font-size:16px}
+.txtbtn.green{color:var(--green);font-weight:600}
+
+.searchwrap{padding:8px 16px 0}
+.search{display:flex;align-items:center;gap:10px;height:52px;padding:0 4px 0 16px;background:var(--card);border-radius:16px;color:var(--hint)}
+.search input{flex:1;min-width:0;border:0;outline:0;background:transparent;font-size:16px;color:var(--ink);-webkit-appearance:none;appearance:none}
+.search input::placeholder{color:var(--hint)}
+.search .clr{width:44px;height:44px;display:none;align-items:center;justify-content:center;color:var(--sub)}
+.search.has .clr{display:flex}
+
+.chiprow{display:flex;align-items:center;padding:12px 0 4px}
+.chips{flex:1;min-width:0;display:flex;gap:8px;overflow-x:auto;padding:0 8px 0 16px;scrollbar-width:none}
+.chips::-webkit-scrollbar{display:none}
+.chip{flex:none;height:44px;padding:0 16px;border-radius:22px;background:var(--card);border:1px solid var(--border);font-size:15px;white-space:nowrap;display:inline-flex;align-items:center;gap:6px}
+.chip .c{color:var(--hint)}
+.chip.on{background:var(--ink);border-color:var(--ink);color:#fff;font-weight:700}
+.chip.on .c{color:rgba(255,255,255,.7)}
+.chip.dash{background:transparent;border:1px dashed var(--muted)}
+.gridbtn{width:52px;height:44px;margin-right:8px;display:flex;align-items:center;justify-content:center;border-radius:12px;flex:none}
+
+.lst{padding:0 12px calc(112px + var(--sb))}
+.gh{position:sticky;top:0;z-index:2;background:var(--bg);display:flex;justify-content:space-between;padding:16px 12px 8px;font-size:13px;color:var(--sub)}
+.rows{background:var(--card);border-radius:18px;overflow:hidden}
+.row{display:flex;align-items:center;gap:12px;min-height:76px;padding:0 12px 0 20px;position:relative;-webkit-user-select:none;user-select:none;-webkit-touch-callout:none}
+.row+.row::before{content:"";position:absolute;left:20px;right:0;top:0;border-top:1px solid var(--line)}
+.row.picked{background:var(--selbg)}
+.row .main{flex:1;min-width:0;display:flex;align-items:center;gap:14px;padding:14px 0;text-align:left;-webkit-touch-callout:none}
+.row .tx{min-width:0;display:block}
+.row .t{display:block;font-size:19px;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.row .s{display:flex;gap:12px;font-size:14px;color:var(--sub);margin-top:4px;white-space:nowrap;overflow:hidden}
+.row .s b{color:var(--ink);font-weight:500}
+.chk{flex:none;width:26px;height:26px;border-radius:13px;border:2px solid var(--disabled);background:var(--card);display:flex;align-items:center;justify-content:center}
+.chk.on{background:var(--ink);border:0}
+.call{flex:none;width:52px;height:52px;border-radius:26px;background:var(--greenbg);color:var(--green);display:flex;align-items:center;justify-content:center}
+.call.off{background:var(--line);color:var(--muted);pointer-events:none}
+.empty{text-align:center;color:var(--sub);font-size:15px;line-height:1.75;padding:48px 24px}
+.hint{text-align:center;color:var(--hint);font-size:13px;padding-top:20px}
+
+.fab{position:fixed;right:20px;bottom:calc(24px + var(--sb));width:60px;height:60px;border-radius:30px;background:var(--ink);color:#fff;display:flex;align-items:center;justify-content:center;box-shadow:0 6px 18px rgba(27,36,32,.25)}
+.actbar{position:fixed;left:0;right:0;bottom:0;background:var(--card);display:flex;gap:10px;padding:12px 16px calc(16px + var(--sb));border-top:1px solid var(--line)}
+.actbar button{flex:1;height:52px;border-radius:18px;font-size:16px}
+.actbar .mv{border:1px solid var(--border)}
+.actbar .del{background:var(--redbg);color:var(--red);font-weight:700}
+.actbar button:disabled{color:var(--muted);background:var(--line);border-color:var(--line)}
+
+.btn{display:flex;align-items:center;justify-content:center;gap:10px;width:100%;height:56px;border-radius:18px;font-size:17px;font-weight:700;background:var(--ink);color:#fff;text-decoration:none}
+.btn.green{background:var(--green)}
+.btn:disabled{background:var(--disabled)}
+.btn2{display:flex;align-items:center;justify-content:center;width:100%;height:52px;border-radius:18px;font-size:16px;background:var(--card);border:1px solid var(--border)}
+.btn2:disabled{color:var(--muted)}
+.foot{padding:12px 16px calc(20px + var(--sb));display:flex;flex-direction:column;gap:10px}
+
+.dtitle{font-size:36px;line-height:1.2;font-weight:900;margin:0 8px 10px;word-break:break-all}
+.pill{display:inline-block;font-size:14px;background:var(--card);border-radius:14px;padding:4px 12px;margin:0 8px 20px}
+.kv{display:flex;align-items:center;gap:16px;min-height:56px;padding:10px 20px}
+.kv+.kv{border-top:1px solid var(--line)}
+.kv .k{color:var(--sub);font-size:15px}
+.kv .v{flex:1;text-align:right;font-size:17px;font-weight:500;word-break:break-all}
+
+.form{display:flex;flex-direction:column;gap:18px;padding:8px 16px 24px}
+.fld{display:flex;flex-direction:column;gap:8px}
+.fld>span{font-size:14px;color:var(--sub);padding-left:4px}
+.fld input{height:52px;border-radius:14px;border:1px solid var(--border);background:var(--card);padding:0 16px;font-size:17px;color:var(--ink);outline:0;width:100%;-webkit-appearance:none;appearance:none}
+.fld input:focus{border-color:var(--ink)}
+.fld.err input{border:2px solid var(--red)}
+.fld .e{font-size:14px;color:var(--red);padding-left:4px;display:none}
+.fld.err .e{display:block}
+.chipwrap{display:flex;flex-wrap:wrap;gap:8px}
+.note{font-size:13px;color:var(--hint);padding-left:4px}
+.newcat{display:flex;gap:8px;align-items:flex-end}
+.newcat .fld{flex:1}
+.newcat .btn{width:88px;height:52px;border-radius:14px}
+.delbtn{height:52px;color:var(--red);font-size:16px;margin-top:24px;width:100%}
+
+.seg{display:flex;gap:4px;margin:0 16px;height:48px;padding:4px;background:var(--card);border-radius:16px}
+.seg button{flex:1;border-radius:12px;font-size:16px}
+.seg button.on{background:var(--ink);color:#fff;font-weight:700}
+.catrow{display:flex;align-items:center;min-height:60px;padding:0 4px 0 20px}
+.catrow+.catrow{border-top:1px solid var(--line)}
+.catrow .nm{flex:1;min-width:0;padding:8px 0}
+.catrow .nm b{display:block;font-size:17px;font-weight:500}
+.catrow .nm span{font-size:13px;color:var(--sub)}
+.catrow .iconbtn{width:44px;height:44px;color:var(--ink)}
+.catrow .iconbtn:disabled{color:var(--line)}
+.catrow .iconbtn.r{color:var(--red)}
+.box{background:var(--card);border-radius:18px;padding:20px;display:flex;flex-direction:column;gap:10px}
+.box p{margin:0;font-size:15px;line-height:1.6}
+.box .em{font-weight:700;line-height:1.75}
+.box .sm{font-size:14px;color:var(--sub)}
+.exrow{display:flex;align-items:center;padding:8px 8px 8px 20px}
+.exrow+.exrow{border-top:1px solid var(--line)}
+.exrow .nm{flex:1}
+.exrow .nm b{display:block;font-weight:500}
+.exrow .nm span{font-size:13px;color:var(--sub)}
+
+/* 弹层 */
+.ov{position:fixed;inset:0;z-index:20;background:rgba(27,36,32,.45);display:flex;flex-direction:column;justify-content:flex-end;animation:fade .15s ease}
+.sheet{background:var(--card);border-radius:24px 24px 0 0;padding:10px 16px calc(28px + var(--sb));max-height:80%;display:flex;flex-direction:column;animation:up .2s ease}
+.sheet .grip{align-self:center;width:40px;height:5px;border-radius:3px;background:var(--border);margin-bottom:12px}
+.sheet h3{margin:0 4px 14px;font-size:18px}
+.sheet .grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;overflow-y:auto}
+.cell{min-height:60px;border-radius:16px;background:var(--bg);display:flex;align-items:center;gap:8px;padding:8px 16px;text-align:left;font-size:16px}
+.cell span:first-child{flex:1}
+.cell .c{color:var(--hint)}
+.cell.on{background:var(--ink);color:#fff;font-weight:700}
+.cell.on .c{color:rgba(255,255,255,.7)}
+.ovc{justify-content:center;padding:0 28px}
+.dlg{background:var(--card);border-radius:22px;padding:24px 20px 12px;animation:fade .15s ease}
+.dlg h3{margin:0 0 8px;font-size:18px;line-height:1.5}
+.dlg p{margin:0;color:var(--sub);font-size:15px;line-height:1.6;white-space:pre-line}
+.dlg .acts{display:flex;justify-content:flex-end;gap:4px;margin-top:16px}
+.dlg .acts button{height:44px;padding:0 14px;font-size:16px}
+.dlg .acts .ok{font-weight:700}
+.dlg .acts .danger{color:var(--red);font-weight:700}
+.dlg .acts button:disabled{color:var(--muted)}
+.dlg .fld{margin-top:12px}
+.chkrow{display:flex;align-items:center;gap:12px;min-height:48px;font-size:16px;width:100%;text-align:left}
+.chkrow:disabled{color:var(--muted)}
+@keyframes fade{from{opacity:0}}
+@keyframes up{from{transform:translateY(40px);opacity:.6}}
+
+#toast{position:fixed;left:0;right:0;margin:0 auto;width:max-content;bottom:calc(110px + var(--sb));z-index:40;background:var(--ink);color:#fff;font-size:15px;padding:12px 20px;border-radius:22px;max-width:calc(100% - 40px);opacity:0;pointer-events:none;transition:opacity .2s}
+#toast.show{opacity:1}
+@media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+</style>
+</head>
+<body>
+<div id="app"></div>
+<div id="layer"></div>
+<div id="toast" role="status" aria-live="polite"></div>
+<script>
+'use strict';
+/* ========= 数据：与安卓版相同的结构，备份文件互通 ========= */
+const KINDS = {
+  EMP: { noun: '员工', unit: '人', item: '员工' },
+  VEH: { noun: '设备与车辆', unit: '台', item: '设备/车辆' }
+};
+const ALL = '全部', UNCAT = '未分类';
+const KEY = 'staff-contacts-v1';
+const D = { recs: [], EMP: [], VEH: [] };   // 记录 + 两类分类表
+
+const norm = s => String(s || '').toLowerCase().replace(/[\s\-_]/g, '');
+const fmtPhone = p => /^\d+$/.test(p || '') ? p.replace(/(\d{3})(?=\d)/g, '$1 ') : (p || '');
+function cleanPhone(p) {
+  let s = String(p || '').trim().replace(/[\s\-]/g, '');
+  if (s.endsWith('.0')) s = s.slice(0, -2);
+  if (s.startsWith('+245')) s = s.slice(4); else if (s.startsWith('00245')) s = s.slice(5);
+  return s;
+}
+const cleanCode = c => String(c || '').trim().replace(/\s+/g, '').toUpperCase();
+const uid = () => (crypto.randomUUID ? crypto.randomUUID() : Date.now().toString(36) + Math.random().toString(36).slice(2));
+const esc = s => String(s == null ? '' : s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+const title = r => r.kind === 'EMP' ? r.name : r.code;
+const searchText = r => r.kind === 'EMP' ? `${r.code} ${r.name} ${r.phone}` : `${r.code} ${r.cat} ${r.note}`;
+const of = k => D.recs.filter(r => r.kind === k);
+const catOf = r => (r.cat && D[r.kind].includes(r.cat)) ? r.cat : UNCAT;
+const get = id => D.recs.find(r => r.id === id);
+const findByCode = (k, code, except) => { const n = norm(code); return n ? D.recs.find(r => r.kind === k && r.id !== except && norm(r.code) === n) : null; };
+
+function toJson(emp = true, veh = true) {
+  return {
+    app: 'staff-vehicle', version: 1, savedAt: Date.now(),
+    empCats: emp ? D.EMP.slice() : [], vehCats: veh ? D.VEH.slice() : [],
+    records: D.recs.filter(r => (r.kind === 'EMP' ? emp : veh)).map(r => ({ id: r.id, kind: r.kind, code: r.code, name: r.name, phone: r.phone, note: r.note, cat: r.cat }))
+  };
+}
+function parseSnap(o) {
+  const strs = a => { const out = []; (Array.isArray(a) ? a : []).forEach(x => { const s = String(x || '').trim(); if (s && !out.includes(s)) out.push(s); }); return out; };
+  const recs = (Array.isArray(o.records) ? o.records : []).filter(j => j && (j.kind === 'EMP' || j.kind === 'VEH') && String(j.code || '').trim())
+    .map(j => ({ id: j.id || uid(), kind: j.kind, code: String(j.code), name: String(j.name || ''), phone: String(j.phone || ''), note: String(j.note || ''), cat: String(j.cat || '') }));
+  return { recs, EMP: strs(o.empCats), VEH: strs(o.vehCats) };
+}
+function load() {
+  try {
+    const raw = localStorage.getItem(KEY);
+    if (raw) { const s = parseSnap(JSON.parse(raw)); D.recs = s.recs; D.EMP = s.EMP; D.VEH = s.VEH; }
+  } catch (e) { console.warn('load failed', e); }
+}
+function save() {
+  try { localStorage.setItem(KEY, JSON.stringify(toJson())); }
+  catch (e) { toast('保存失败：手机存储空间不足或浏览器禁止保存'); }
+}
+const addCatSilently = (k, n) => { n = String(n || '').trim(); if (n && n !== ALL && n !== UNCAT && !D[k].includes(n)) D[k].push(n); };
+function validCat(k, name, except) {
+  const n = String(name || '').trim();
+  if (!n) return '请输入分类名称';
+  if (n === ALL || n === UNCAT) return `「${n}」是保留名称，请换一个`;
+  if (n !== except && D[k].includes(n)) return `已经有「${n}」这个分类了`;
+  return null;
+}
+function upsert(r) { const i = D.recs.findIndex(x => x.id === r.id); if (i >= 0) D.recs[i] = r; else D.recs.push(r); addCatSilently(r.kind, r.cat); save(); }
+function delRecs(ids) { D.recs = D.recs.filter(r => !ids.has(r.id)); save(); }
+function moveRecs(ids, cat) { const c = cat === UNCAT ? '' : cat; D.recs.forEach(r => { if (ids.has(r.id)) r.cat = c; }); save(); }
+function renameCat(k, old, nw) { nw = nw.trim(); const i = D[k].indexOf(old); if (i < 0) return; D[k][i] = nw; D.recs.forEach(r => { if (r.kind === k && r.cat === old) r.cat = nw; }); save(); }
+function deleteCat(k, name) { D[k] = D[k].filter(c => c !== name); D.recs.forEach(r => { if (r.kind === k && r.cat === name) r.cat = ''; }); save(); }
+function moveCat(k, i, d) { const l = D[k], j = i + d; if (j < 0 || j >= l.length) return; [l[i], l[j]] = [l[j], l[i]]; save(); }
+function merge(k, incoming, cats, replace) {
+  let added = 0, updated = 0;
+  if (replace) { D.recs = D.recs.filter(r => r.kind !== k); D[k] = []; }
+  cats.forEach(c => addCatSilently(k, c));
+  incoming.filter(r => r.kind === k).forEach(r => {
+    const ex = findByCode(k, r.code);
+    if (ex) { Object.assign(ex, r, { id: ex.id }); updated++; } else { D.recs.push(Object.assign({}, r, { id: uid() })); added++; }
+    addCatSilently(k, r.cat);
+  });
+  save();
+  return [added, updated];
+}
+
+/* ========= CSV（WPS / Excel 另存为 CSV） ========= */
+function decodeBytes(buf) {
+  let b = new Uint8Array(buf);
+  if (b[0] === 0xEF && b[1] === 0xBB && b[2] === 0xBF) b = b.subarray(3);
+  try { return new TextDecoder('utf-8', { fatal: true }).decode(b); }
+  catch (e) { try { return new TextDecoder('gbk').decode(b); } catch (e2) { return new TextDecoder('utf-8').decode(b); } }
+}
+function parseCsv(text) {
+  const first = text.split(/\r?\n/).find(l => l.trim()) || '';
+  const sep = (!first.includes(',') && first.includes('\t')) ? '\t' : ',';
+  const rows = []; let row = [], cell = '', q = false;
+  for (let i = 0; i < text.length; i++) {
+    const ch = text[i];
+    if (q) {
+      if (ch === '"') { if (text[i + 1] === '"') { cell += '"'; i++; } else q = false; }
+      else cell += ch;
+    } else if (ch === '"') q = true;
+    else if (ch === sep) { row.push(cell); cell = ''; }
+    else if (ch === '\r') { }
+    else if (ch === '\n') { row.push(cell); cell = ''; rows.push(row); row = []; }
+    else cell += ch;
+  }
+  if (cell || row.length) { row.push(cell); rows.push(row); }
+  return rows.map(r => r.map(c => c.trim())).filter(r => r.some(c => c));
+}
+const csvEsc = s => /[",\r\n]/.test(s) ? '"' + s.replace(/"/g, '""') + '"' : s;
+function sortedForExport(k) {
+  const order = D[k];
+  return of(k).sort((a, b) => {
+    const ca = catOf(a), cb = catOf(b);
+    const ia = ca === UNCAT ? 1e9 : order.indexOf(ca), ib = cb === UNCAT ? 1e9 : order.indexOf(cb);
+    return ia - ib || norm(a.code).localeCompare(norm(b.code));
+  });
+}
+function exportCsv(k) {
+  let s = '﻿';
+  if (k === 'EMP') { s += '工票号,名字,手机号,分类\r\n'; sortedForExport(k).forEach(r => { s += [r.code, r.name, r.phone, catOf(r)].map(csvEsc).join(',') + '\r\n'; }); }
+  else { s += '编号,分类,备注\r\n'; sortedForExport(k).forEach(r => { s += [r.code, catOf(r), r.note].map(csvEsc).join(',') + '\r\n'; }); }
+  return s;
+}
+const today = () => { const d = new Date(); return '' + d.getFullYear() + String(d.getMonth() + 1).padStart(2, '0') + String(d.getDate()).padStart(2, '0'); };
+const csvName = k => (k === 'EMP' ? '员工名单_' : '设备与车辆名单_') + today() + '.csv';
+const backupName = () => `员工联系方式备份_${today()}.json`;
+const HEADER_WORDS = ['工票', '工号', '名字', '姓名', '手机', '电话', '号码', '车辆', '编号', '车号', '分类', '类别', '备注', '营地'];
+function importCsv(k, text) {
+  const rows = parseCsv(text);
+  if (!rows.length) return { added: 0, updated: 0, skipped: 0 };
+  const head = rows[0];
+  const hasHeader = head.some(h => HEADER_WORDS.some(w => h.includes(w)));
+  const col = (def, ...keys) => hasHeader ? head.findIndex(h => keys.some(w => h.includes(w))) : def;
+  const data = hasHeader ? rows.slice(1) : rows;
+  const at = (r, i) => (i >= 0 && i < r.length) ? r[i] : '';
+  const inc = []; let skipped = 0;
+  const catVal = (v, old) => { v = v.trim(); if (v === UNCAT) v = ''; return v || (old ? old.cat : ''); };
+  if (k === 'EMP') {
+    const cC = col(0, '工票', '工号'), cN = col(1, '名字', '姓名'), cP = col(2, '手机', '电话', '号码'), cK = col(3, '分类', '类别', '工种');
+    data.forEach(r => {
+      const code = cleanCode(at(r, cC)), name = at(r, cN).trim();
+      if (!code || !name) { skipped++; return; }
+      const old = findByCode(k, code);
+      inc.push({ id: '', kind: k, code, name, phone: cleanPhone(at(r, cP)) || (old ? old.phone : ''), note: '', cat: catVal(at(r, cK), old) });
+    });
+  } else {
+    const cC = col(0, '编号', '车号', '车牌'), cK = col(1, '分类', '类别', '车型'), cT = col(2, '备注', '营地', '位置');
+    data.forEach(r => {
+      const code = cleanCode(at(r, cC));
+      if (!code) { skipped++; return; }
+      const old = findByCode(k, code);
+      inc.push({ id: '', kind: k, code, name: '', phone: '', note: at(r, cT).trim() || (old ? old.note : ''), cat: catVal(at(r, cK), old) });
+    });
+  }
+  const map = new Map(); inc.forEach(r => map.set(norm(r.code), r));
+  skipped += inc.length - map.size;
+  const [added, updated] = merge(k, [...map.values()], [], false);
+  return { added, updated, skipped };
+}
+
+/* ========= 文件：发送 / 保存 / 选择 ========= */
+async function shareFile(name, text, mime) {
+  const file = new File([text], name, { type: mime });
+  if (navigator.canShare && navigator.canShare({ files: [file] })) {
+    try { await navigator.share({ files: [file] }); return; }
+    catch (e) { if (e && e.name === 'AbortError') return; }
+  }
+  downloadFile(name, text, mime);
+}
+function downloadFile(name, text, mime) {
+  const url = URL.createObjectURL(new Blob([text], { type: mime }));
+  const a = document.createElement('a'); a.href = url; a.download = name;
+  document.body.appendChild(a); a.click();
+  setTimeout(() => { URL.revokeObjectURL(url); a.remove(); }, 2000);
+  toast('已保存。iPhone 在「文件」App 的「下载项」里');
+}
+function pickFile(cb) {
+  const inp = document.createElement('input'); inp.type = 'file'; inp.style.display = 'none';
+  inp.onchange = () => { const f = inp.files && inp.files[0]; inp.remove(); if (f) f.arrayBuffer().then(cb).catch(() => alert('读不到这个文件，请换一个文件再试。')); };
+  document.body.appendChild(inp); inp.click();
+}
+
+/* ========= 图标 ========= */
+const I = {
+  back: '<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 6l-6 6 6 6"/></svg>',
+  chev: '<svg class="chev" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 6l6 6-6 6"/></svg>',
+  phone: '<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 4h4l2 5-2.5 1.5a11 11 0 0 0 5 5L15 13l5 2v4a2 2 0 0 1-2 2A16 16 0 0 1 3 6a2 2 0 0 1 2-2"/></svg>',
+  search: '<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.5-3.5"/></svg>',
+  x: '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg>',
+  plus: '<svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>',
+  list: '<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M8 6h12M8 12h12M8 18h12"/><circle cx="4" cy="6" r=".5"/><circle cx="4" cy="12" r=".5"/><circle cx="4" cy="18" r=".5"/></svg>',
+  check: '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg>',
+  up: '<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 15l6-6 6 6"/></svg>',
+  down: '<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg>',
+  edit: '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 20h4L19 9l-4-4L4 16z"/></svg>',
+  trash: '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 7h16M10 11v6M14 11v6M6 7l1 13h10l1-13M9 7V4h6v3"/></svg>'
+};
+
+/* ========= 导航 ========= */
+const app = document.getElementById('app'), layer = document.getElementById('layer');
+let stack = [{ s: 'home' }];
+const lists = { EMP: newListUi(), VEH: newListUi() };
+function newListUi() { return { q: '', cat: ALL, sel: false, picked: new Set(), scroll: 0 }; }
+const top_ = () => stack[stack.length - 1];
+function rememberScroll() {
+  const t = top_(); if (t.s === 'list') { const el = document.getElementById('listScroll'); if (el) lists[t.k].scroll = el.scrollTop; }
+}
+function push(s) { rememberScroll(); closeLayer(); stack.push(s); history.pushState({ d: stack.length }, ''); render(); }
+function back(n = 1) { if (stack.length > 1) history.go(-Math.min(n, stack.length - 1)); }
+window.addEventListener('popstate', e => {
+  const d = (e.state && e.state.d) || 1;
+  closeLayer();
+  const t = top_();
+  if (t.s === 'list' && lists[t.k].sel && d < stack.length) { lists[t.k].sel = false; lists[t.k].picked.clear(); }
+  if (d < stack.length) { while (stack.length > d) stack.pop(); render(); }
+  else if (d > stack.length) { history.replaceState({ d: stack.length }, ''); }
+});
+
+let toastTimer;
+function toast(msg) { const t = document.getElementById('toast'); t.textContent = msg; t.classList.add('show'); clearTimeout(toastTimer); toastTimer = setTimeout(() => t.classList.remove('show'), 2200); }
+
+/* ========= 页面 ========= */
+function render() {
+  const t = top_();
+  if (t.s === 'detail' && !get(t.id)) { back(); return; }
+  ({ home: renderHome, list: renderList, detail: renderDetail, edit: renderEdit, cats: renderCats, io: renderIo, backup: renderBackup })[t.s](t);
+}
+
+function renderHome() {
+  const card = k => `<button class="total" data-act="openList" data-k="${k}"><span class="k">${KINDS[k].noun}</span><span class="n num">${of(k).length}</span><span class="u">${KINDS[k].unit}</span>${I.chev}</button>`;
+  app.innerHTML = `<div class="screen"><div class="scroll pad">
+    <h1 class="h1">员工联系方式</h1>
+    ${card('EMP')}${card('VEH')}
+    <div class="label">更多</div>
+    <div class="group">
+      <button class="menu" data-act="go" data-to="cats"><span class="t">管理分类</span>${I.chev}</button>
+      <button class="menu" data-act="go" data-to="io"><span class="t">导入 / 导出名单<span class="s">用 WPS、Excel 表格批量录入或导出</span></span>${I.chev}</button>
+      <button class="menu" data-act="go" data-to="backup"><span class="t">交接备份<span class="s">换手机或交给同事时，把全部数据打包</span></span>${I.chev}</button>
+    </div>
+  </div></div>`;
+}
+
+/* ---- 列表 ---- */
+function listData(k) {
+  const ui = lists[k], all = of(k), cats = D[k].slice();
+  const hasUncat = all.some(r => catOf(r) === UNCAT);
+  const order = hasUncat ? cats.concat(UNCAT) : cats;
+  const cur = (ui.cat === ALL || order.includes(ui.cat)) ? ui.cat : ALL;
+  const q = norm(ui.q);
+  const shown = all.filter(r => (cur === ALL || catOf(r) === cur) && (!q || norm(searchText(r)).includes(q)));
+  const groups = order.map(c => [c, shown.filter(r => catOf(r) === c).sort((a, b) => norm(a.code).localeCompare(norm(b.code)))]).filter(g => g[1].length);
+  return { ui, all, cats, order, cur, shown, groups };
+}
+function renderList(t) {
+  const k = t.k, ui = lists[k];
+  app.innerHTML = `<div class="screen">
+    <div id="topbar"></div>
+    <div class="searchwrap"><label class="search ${ui.q ? 'has' : ''}" id="searchBox">${I.search}
+      <input id="q" type="text" inputmode="search" enterkeyhint="search" autocomplete="off" autocorrect="off" spellcheck="false" placeholder="${k === 'EMP' ? '工票号、名字或手机号' : '编号、分类或营地'}" value="${esc(ui.q)}" aria-label="搜索">
+      <button class="clr" data-act="clearQ" aria-label="清空搜索">${I.x}</button></label></div>
+    <div class="chiprow"><div class="chips" id="chips"></div><button class="gridbtn" data-act="filterSheet" aria-label="全部分类">${I.list}</button></div>
+    <div class="scroll" id="listScroll"><div class="lst" id="listBody"></div></div>
+    <div id="bottom"></div>
+  </div>`;
+  const q = document.getElementById('q');
+  q.addEventListener('input', () => { ui.q = q.value; document.getElementById('searchBox').classList.toggle('has', !!ui.q); updateList(); });
+  q.addEventListener('keydown', e => { if (e.key === 'Enter') q.blur(); });
+  updateList();
+  document.getElementById('listScroll').scrollTop = ui.scroll;
+}
+function updateList() {
+  const t = top_(); if (t.s !== 'list') return;
+  const k = t.k, K = KINDS[k], L = listData(k), ui = L.ui;
+  // 顶栏
+  const shownIds = L.shown.map(r => r.id);
+  const allPicked = shownIds.length > 0 && shownIds.every(id => ui.picked.has(id));
+  document.getElementById('topbar').innerHTML = ui.sel
+    ? `<div class="selbar"><button class="txtbtn" data-act="exitSel">取消</button><h2 class="num">已选 ${ui.picked.size} ${K.unit}</h2><button class="txtbtn green" data-act="pickAll">${allPicked ? '全不选' : '全选'}</button></div>`
+    : `<div class="bar"><button class="iconbtn" data-act="back" aria-label="返回">${I.back}</button><h2>${K.noun}</h2><span class="trail num">共 ${L.all.length} ${K.unit}</span></div>`;
+  // 分类标签
+  const chip = (c, n) => `<button class="chip ${L.cur === c ? 'on' : ''}" data-act="setCat" data-c="${esc(c)}">${esc(c)}<span class="c num">${n}</span></button>`;
+  document.getElementById('chips').innerHTML = chip(ALL, L.all.length) + L.order.map(c => chip(c, L.all.filter(r => catOf(r) === c).length)).join('');
+  // 列表
+  let html = '';
+  L.groups.forEach(([c, items]) => {
+    html += `<div class="gh"><span>${esc(c)}</span><span class="num">${items.length} ${K.unit}</span></div><div class="rows">`;
+    items.forEach(r => {
+      const on = ui.picked.has(r.id);
+      const sub = k === 'EMP'
+        ? `<b class="num">${esc(r.code)}</b><span class="num">${r.phone ? esc(fmtPhone(r.phone)) : '未登记号码'}</span>`
+        : `<span>${esc(r.note || '无备注')}</span>`;
+      const right = ui.sel ? '' : (k === 'EMP'
+        ? `<a class="call ${r.phone ? '' : 'off'}" href="tel:${esc(r.phone)}" aria-label="拨打 ${esc(r.name)}">${I.phone}</a>`
+        : I.chev);
+      html += `<div class="row ${on ? 'picked' : ''}"><button class="main" data-act="row" data-id="${r.id}">
+        ${ui.sel ? `<span class="chk ${on ? 'on' : ''}">${on ? I.check : ''}</span>` : ''}
+        <span class="tx"><span class="t">${esc(title(r))}</span><span class="s">${sub}</span></span></button>${right}</div>`;
+    });
+    html += '</div>';
+  });
+  if (!L.groups.length) {
+    html = `<div class="empty">${L.all.length ? `没有找到匹配的结果。可以试试${k === 'EMP' ? '工票号、名字，或手机号的后几位' : '编号的一部分'}。` : `还没有${K.item}。点右下角的 ＋ 添加，或在主页「导入 / 导出名单」里从表格批量导入。`}</div>`;
+  } else if (!ui.sel) html += `<div class="hint">长按某一行，可以多选后批量改分类或删除</div>`;
+  document.getElementById('listBody').innerHTML = html;
+  // 底部
+  const none = ui.picked.size === 0;
+  document.getElementById('bottom').innerHTML = ui.sel
+    ? `<div class="actbar"><button class="mv" data-act="moveSheet" ${none ? 'disabled' : ''}>改分类</button><button class="del" data-act="askDelPicked" ${none ? 'disabled' : ''}>删除</button></div>`
+    : `<button class="fab" data-act="add" aria-label="新增${K.item}">${I.plus}</button>`;
+}
+
+/* ---- 长按进入多选 ---- */
+let lp = null, lpFired = false;
+document.addEventListener('pointerdown', e => {
+  const b = e.target.closest('.row .main'); if (!b) return;
+  lpFired = false;
+  const x = e.clientX, y = e.clientY;
+  lp = { x, y, timer: setTimeout(() => {
+    lpFired = true; lp = null;
+    const t = top_(); if (t.s !== 'list') return;
+    const ui = lists[t.k];
+    if (!ui.sel) { ui.sel = true; ui.picked.clear(); }
+    ui.picked.add(b.dataset.id);
+    if (navigator.vibrate) navigator.vibrate(15);
+    updateList();
+  }, 500) };
+});
+const cancelLp = () => { if (lp) { clearTimeout(lp.timer); lp = null; } };
+document.addEventListener('pointermove', e => { if (lp && (Math.abs(e.clientX - lp.x) > 10 || Math.abs(e.clientY - lp.y) > 10)) cancelLp(); });
+document.addEventListener('pointerup', cancelLp);
+document.addEventListener('pointercancel', cancelLp);
+document.addEventListener('contextmenu', e => { if (e.target.closest('.row')) e.preventDefault(); });
+
+/* ---- 详情 ---- */
+function renderDetail(t) {
+  const r = get(t.id);
+  const kv = r.kind === 'EMP'
+    ? [['工票号', r.code], ['手机号', fmtPhone(r.phone) || '未登记'], ['分类', catOf(r)]]
+    : [['编号', r.code], ['分类', catOf(r)], ['备注', r.note || '无']];
+  app.innerHTML = `<div class="screen">
+    <div class="bar"><button class="iconbtn" data-act="back" aria-label="返回">${I.back}</button></div>
+    <div class="scroll" style="padding:0 16px">
+      <h1 class="dtitle">${esc(title(r))}</h1><span class="pill">${esc(catOf(r))}</span>
+      <div class="group">${kv.map(([a, b]) => `<div class="kv"><span class="k">${a}</span><span class="v num">${esc(b)}</span></div>`).join('')}</div>
+    </div>
+    <div class="foot">
+      ${r.kind === 'EMP' && r.phone ? `<a class="btn green num" href="tel:${esc(r.phone)}">${I.phone}拨打 ${esc(fmtPhone(r.phone))}</a>` : ''}
+      <button class="btn2" data-act="edit" data-id="${r.id}">编辑</button>
+    </div></div>`;
+}
+
+/* ---- 新增 / 编辑 ---- */
+function renderEdit(t) {
+  const k = t.k, K = KINDS[k];
+  if (!t.form) {
+    const o = t.id ? get(t.id) : null;
+    const c0 = o ? catOf(o) : lists[k].cat;
+    t.form = { code: o ? o.code : '', name: o ? o.name : '', phone: o ? o.phone : '', note: o ? o.note : '', cat: (c0 === ALL || c0 === UNCAT) ? '' : c0 };
+    t.newCatOpen = false; t.newCat = '';
+  }
+  const f = t.form, adding = !t.id;
+  const fld = (key, label, ph, attrs = '') => `<label class="fld" id="f_${key}"><span>${label}</span><input data-f="${key}" value="${esc(f[key])}" placeholder="${ph}" ${attrs}><span class="e"></span></label>`;
+  const fields = k === 'EMP'
+    ? fld('code', '工票号', '例如 B288-1', 'autocapitalize="characters" autocomplete="off" autocorrect="off" spellcheck="false" enterkeyhint="next"') +
+      fld('name', '名字', '', 'autocomplete="off" enterkeyhint="next"') +
+      fld('phone', '手机号', '当地号码，不加 +245', 'type="tel" inputmode="tel" autocomplete="off" enterkeyhint="done"')
+    : fld('code', '编号', '例如 G301-021', 'autocapitalize="characters" autocomplete="off" autocorrect="off" spellcheck="false" enterkeyhint="next"') +
+      fld('note', '备注', '例如所在营地', 'autocomplete="off" enterkeyhint="done"');
+  app.innerHTML = `<div class="screen">
+    <div class="selbar"><button class="txtbtn" data-act="back">取消</button><h2>${adding ? '新增' : '编辑'}${K.item}</h2><span style="width:72px"></span></div>
+    <div class="scroll"><div class="form">
+      ${fields}
+      <div class="fld"><span>分类</span>
+        <div class="chipwrap">${D[k].map(c => `<button class="chip ${f.cat === c ? 'on' : ''}" data-act="formCat" data-c="${esc(c)}">${esc(c)}</button>`).join('')}
+          <button class="chip dash" data-act="toggleNewCat">＋ 新建分类</button></div>
+        ${f.cat ? '' : '<span class="note">不选就是「未分类」，以后也可以再改</span>'}
+        ${t.newCatOpen ? `<div class="newcat"><label class="fld" id="f_newcat"><span>新分类名称</span><input id="newCat" value="${esc(t.newCat)}" autocomplete="off"><span class="e"></span></label><button class="btn" data-act="addNewCat" id="addNewCatBtn">添加</button></div>` : ''}
+      </div>
+      ${adding ? '' : `<button class="delbtn" data-act="askDelOne">删除这个${K.item}</button>`}
+    </div></div>
+    <div class="foot">
+      ${adding ? '<button class="btn2" data-act="save" data-keep="1" id="saveKeep">保存并继续添加</button>' : ''}
+      <button class="btn" data-act="save" id="saveBtn">保存</button>
+    </div></div>`;
+  app.querySelectorAll('input[data-f]').forEach(inp => inp.addEventListener('input', () => { f[inp.dataset.f] = inp.value; updateEditState(); }));
+  const nc = document.getElementById('newCat');
+  if (nc) { nc.addEventListener('input', () => { t.newCat = nc.value; updateEditState(); }); }
+  updateEditState();
+}
+function editCheck(t) {
+  const f = t.form, k = t.k;
+  const dup = findByCode(t.k, f.code, t.id);
+  const codeErr = dup ? (k === 'EMP' ? `这个工票号已经是 ${dup.name} 的了` : '这个编号已经登记过了') : null;
+  const ok = !!cleanCode(f.code) && (k === 'VEH' || !!f.name.trim()) && !dup;
+  return { codeErr, ok };
+}
+function updateEditState() {
+  const t = top_(); if (t.s !== 'edit') return;
+  const { codeErr, ok } = editCheck(t);
+  const fc = document.getElementById('f_code');
+  fc.classList.toggle('err', !!codeErr); fc.querySelector('.e').textContent = codeErr || '';
+  document.getElementById('saveBtn').disabled = !ok;
+  const sk = document.getElementById('saveKeep'); if (sk) sk.disabled = !ok;
+  const nb = document.getElementById('addNewCatBtn');
+  if (nb) {
+    const err = validCat(t.k, t.newCat);
+    nb.disabled = !!err;
+    const box = document.getElementById('f_newcat');
+    const show = t.newCat.trim() && err;
+    box.classList.toggle('err', !!show); box.querySelector('.e').textContent = show ? err : '';
+  }
+}
+function doSave(keep) {
+  const t = top_(), f = t.form;
+  if (!editCheck(t).ok) return;
+  const rec = { id: t.id || uid(), kind: t.k, code: cleanCode(f.code), name: f.name.trim(), phone: cleanPhone(f.phone), note: f.note.trim(), cat: f.cat };
+  upsert(rec);
+  if (keep) {
+    toast(`已添加 ${title(rec)}，继续添加下一个`);
+    t.form = { code: '', name: '', phone: '', note: '', cat: f.cat };
+    renderEdit(t);
+    const first = app.querySelector('input[data-f]'); if (first) first.focus();
+  } else {
+    toast(t.id ? '已保存' : `已添加 ${title(rec)}`);
+    back();
+  }
+}
+
+/* ---- 管理分类 ---- */
+function renderCats(t) {
+  const k = t.k || 'EMP'; t.k = k; const K = KINDS[k], cats = D[k];
+  const count = c => D.recs.filter(r => r.kind === k && r.cat === c).length;
+  app.innerHTML = `<div class="screen">
+    <div class="bar"><button class="iconbtn" data-act="back" aria-label="返回">${I.back}</button><h2>管理分类</h2></div>
+    <div class="seg">${Object.keys(KINDS).map(x => `<button class="${x === k ? 'on' : ''}" data-act="catKind" data-k="${x}">${KINDS[x].noun}</button>`).join('')}</div>
+    <div class="scroll" style="padding:16px">
+      ${cats.length ? `<div class="group">${cats.map((c, i) => `<div class="catrow">
+          <div class="nm"><b>${esc(c)}</b><span class="num">${count(c)} ${K.unit}</span></div>
+          <button class="iconbtn" data-act="catMove" data-i="${i}" data-d="-1" ${i === 0 ? 'disabled' : ''} aria-label="上移">${I.up}</button>
+          <button class="iconbtn" data-act="catMove" data-i="${i}" data-d="1" ${i === cats.length - 1 ? 'disabled' : ''} aria-label="下移">${I.down}</button>
+          <button class="iconbtn" data-act="catRename" data-i="${i}" aria-label="改名">${I.edit}</button>
+          <button class="iconbtn r" data-act="catDelete" data-i="${i}" aria-label="删除分类">${I.trash}</button></div>`).join('')}</div>
+          <div class="note" style="margin-top:12px">排在前面的分类，在列表里也排在前面。</div>`
+        : `<p class="empty" style="padding:24px 4px;text-align:left">还没有${K.noun}分类。分类名称全部由你自己定，比如按车型、设备类型分。</p>`}
+    </div>
+    <div class="foot"><button class="btn" data-act="catAdd">新建${K.noun}分类</button></div></div>`;
+}
+
+/* ---- 导入导出 ---- */
+function renderIo() {
+  const row = k => `<div class="exrow"><div class="nm"><b>${KINDS[k].noun}表</b><span class="num">${of(k).length} ${KINDS[k].unit}</span></div>
+    <button class="txtbtn green" data-act="csvShare" data-k="${k}">发送</button><button class="txtbtn" data-act="csvSave" data-k="${k}">存到手机</button></div>`;
+  app.innerHTML = `<div class="screen">
+    <div class="bar"><button class="iconbtn" data-act="back" aria-label="返回">${I.back}</button><h2>导入 / 导出名单</h2></div>
+    <div class="scroll pad" style="padding-top:0">
+      <div class="label">从表格导入</div>
+      <div class="box">
+        <p>在 WPS 或 Excel 里把名单另存为 CSV 文件，第一行写表头：</p>
+        <p class="em">员工：工票号、名字、手机号、分类<br>设备与车辆：编号、分类、备注</p>
+        <p class="sm">列的顺序可以不同，按表头认。编号已存在的会更新，没有的会新增；表里出现的新分类会自动加上。</p>
+        <button class="btn" data-act="csvImport" data-k="EMP" style="margin-top:4px">导入员工名单</button>
+        <button class="btn2" data-act="csvImport" data-k="VEH">导入设备与车辆名单</button>
+      </div>
+      <div class="label">导出成表格</div>
+      <div class="group">${row('EMP')}${row('VEH')}</div>
+      <p class="note" style="margin-top:12px">「发送」可以直接发到微信；导出的文件用 WPS、Excel 都能打开。</p>
+    </div></div>`;
+}
+
+/* ---- 交接备份 ---- */
+function renderBackup() {
+  app.innerHTML = `<div class="screen">
+    <div class="bar"><button class="iconbtn" data-act="back" aria-label="返回">${I.back}</button><h2>交接备份</h2></div>
+    <div class="scroll pad" style="padding-top:0">
+      <div class="label">打包全部数据</div>
+      <div class="box">
+        <p>员工 ${of('EMP').length} 人、设备与车辆 ${of('VEH').length} 台，连同分类打包成一个文件。换手机、或交给同事接手时用。和安卓版的备份文件通用。</p>
+        <button class="btn green" data-act="bakShare" style="margin-top:4px">发送备份文件</button>
+        <button class="btn2" data-act="bakSave">存到手机</button>
+      </div>
+      <div class="label">从备份恢复</div>
+      <div class="box">
+        <p>选择收到的备份文件（安卓版或网页版的都可以），再勾选要导入员工、设备与车辆，或两样都要。</p>
+        <button class="btn2" data-act="bakRestore" style="margin-top:4px">选择备份文件</button>
+      </div>
+    </div></div>`;
+}
+
+/* ========= 弹层 ========= */
+function closeLayer() { layer.innerHTML = ''; }
+function showSheet(titleTxt, options, onPick) {
+  layer.innerHTML = `<div class="ov" data-act="closeLayer"><div class="sheet" role="dialog" aria-label="${esc(titleTxt)}"><div class="grip"></div><h3>${esc(titleTxt)}</h3>
+    ${options.length ? `<div class="grid">${options.map((o, i) => `<button class="cell ${o.on ? 'on' : ''}" data-opt="${i}"><span>${esc(o.label)}</span><span class="c num">${o.n}</span></button>`).join('')}</div>` : '<p class="sm" style="margin:4px">还没有分类。可以在主页「管理分类」里添加。</p>'}
+  </div></div>`;
+  layer.querySelectorAll('[data-opt]').forEach(b => b.addEventListener('click', e => { e.stopPropagation(); const o = options[+b.dataset.opt]; closeLayer(); onPick(o.value); }));
+}
+function showConfirm(h, p, okTxt, onOk, danger = true) {
+  layer.innerHTML = `<div class="ov ovc" data-act="closeLayer"><div class="dlg" role="alertdialog" aria-label="${esc(h)}"><h3>${esc(h)}</h3><p>${esc(p)}</p>
+    <div class="acts"><button data-act="closeLayer">取消</button><button class="${danger ? 'danger' : 'ok'}" id="dlgOk">${esc(okTxt)}</button></div></div></div>`;
+  document.getElementById('dlgOk').onclick = e => { e.stopPropagation(); closeLayer(); onOk(); };
+}
+function showInfo(h, p) {
+  layer.innerHTML = `<div class="ov ovc" data-act="closeLayer"><div class="dlg" role="alertdialog"><h3>${esc(h)}</h3><p>${esc(p)}</p><div class="acts"><button class="ok" data-act="closeLayer">好</button></div></div></div>`;
+}
+function showName(h, initial, validate, onOk) {
+  layer.innerHTML = `<div class="ov ovc" data-act="closeLayer"><div class="dlg" role="dialog"><h3>${esc(h)}</h3>
+    <label class="fld" id="nmF"><span>名称</span><input id="nmI" value="${esc(initial)}" autocomplete="off"><span class="e"></span></label>
+    <div class="acts"><button data-act="closeLayer">取消</button><button class="ok" id="nmOk">确定</button></div></div></div>`;
+  const inp = document.getElementById('nmI'), box = document.getElementById('nmF');
+  const go = e => { if (e) e.stopPropagation(); const err = validate(inp.value); if (err) { box.classList.add('err'); box.querySelector('.e').textContent = err; return; } closeLayer(); onOk(inp.value.trim()); };
+  document.getElementById('nmOk').onclick = go;
+  inp.addEventListener('keydown', e => { if (e.key === 'Enter') go(); });
+  inp.addEventListener('input', () => box.classList.remove('err'));
+  setTimeout(() => inp.focus(), 50);
+}
+function showRestore(snap) {
+  const nE = snap.recs.filter(r => r.kind === 'EMP').length, nV = snap.recs.filter(r => r.kind === 'VEH').length;
+  const sel = { EMP: nE > 0, VEH: nV > 0 };
+  const draw = () => {
+    const any = sel.EMP || sel.VEH;
+    const cr = (k, label, n) => `<button class="chkrow" data-k="${k}" ${n ? '' : 'disabled'}><span class="chk ${sel[k] ? 'on' : ''}">${sel[k] ? I.check : ''}</span><span class="num">${label}（${n} ${KINDS[k].unit}）</span></button>`;
+    layer.innerHTML = `<div class="ov ovc" data-act="closeLayer"><div class="dlg" role="dialog"><h3>要导入哪些？</h3>
+      ${cr('EMP', '员工', nE)}${cr('VEH', '设备与车辆', nV)}
+      <p style="margin-top:8px">合并：按编号对上的更新，没有的新增，手机上原有的保留。\n替换：先清空手机上的，再换成备份里的。</p>
+      <div class="acts"><button data-act="closeLayer">取消</button><button class="danger" id="rsRep" ${any ? '' : 'disabled'}>替换</button><button class="ok" id="rsMerge" ${any ? '' : 'disabled'}>合并</button></div></div></div>`;
+    layer.querySelectorAll('.chkrow').forEach(b => b.addEventListener('click', e => { e.stopPropagation(); sel[b.dataset.k] = !sel[b.dataset.k]; draw(); }));
+    const run = replace => {
+      let a = 0, u = 0;
+      ['EMP', 'VEH'].forEach(k => { if (sel[k]) { const [x, y] = merge(k, snap.recs, snap[k], replace); a += x; u += y; } });
+      closeLayer(); render();
+      toast(replace ? `已替换，共 ${a} 条` : `新增 ${a} 条，更新 ${u} 条`);
+    };
+    document.getElementById('rsMerge').onclick = e => { e.stopPropagation(); run(false); };
+    document.getElementById('rsRep').onclick = e => {
+      e.stopPropagation();
+      const what = [sel.EMP && '员工', sel.VEH && '设备与车辆'].filter(Boolean).join('和');
+      showConfirm('替换现有数据？', `手机上已有的${what}会先全部清空，再换成备份里的。这一步不能撤销。`, '替换', () => run(true));
+    };
+  };
+  draw();
+}
+
+/* ========= 点击处理 ========= */
+const A = {
+  back: () => back(),
+  go: b => push({ s: b.dataset.to }),
+  openList: b => { const k = b.dataset.k; lists[k].sel = false; lists[k].picked.clear(); push({ s: 'list', k }); },
+  closeLayer: (b, e) => { if (e.target === b) closeLayer(); },
+  clearQ: (b, e) => { e.preventDefault(); const t = top_(); lists[t.k].q = ''; const q = document.getElementById('q'); q.value = ''; document.getElementById('searchBox').classList.remove('has'); updateList(); q.focus(); },
+  setCat: b => { lists[top_().k].cat = b.dataset.c; updateList(); },
+  filterSheet: () => {
+    const t = top_(), L = listData(t.k);
+    showSheet('选择分类', [ALL].concat(L.order).map(c => ({ label: c, value: c, on: L.cur === c, n: c === ALL ? L.all.length : L.all.filter(r => catOf(r) === c).length })),
+      c => { lists[t.k].cat = c; updateList(); document.getElementById('listScroll').scrollTop = 0; });
+  },
+  row: b => {
+    if (lpFired) { lpFired = false; return; }
+    const t = top_(), ui = lists[t.k], id = b.dataset.id;
+    if (ui.sel) { ui.picked.has(id) ? ui.picked.delete(id) : ui.picked.add(id); updateList(); }
+    else push({ s: 'detail', k: t.k, id });
+  },
+  exitSel: () => { const ui = lists[top_().k]; ui.sel = false; ui.picked.clear(); updateList(); },
+  pickAll: () => {
+    const t = top_(), L = listData(t.k), ids = L.shown.map(r => r.id);
+    const all = ids.length && ids.every(id => L.ui.picked.has(id));
+    ids.forEach(id => all ? L.ui.picked.delete(id) : L.ui.picked.add(id)); updateList();
+  },
+  moveSheet: () => {
+    const t = top_(), k = t.k, ui = lists[k], all = of(k);
+    showSheet('移到哪个分类', D[k].concat(UNCAT).map(c => ({ label: c, value: c, on: false, n: all.filter(r => catOf(r) === c).length })), c => {
+      const n = ui.picked.size; moveRecs(ui.picked, c); ui.sel = false; ui.picked.clear(); updateList();
+      toast(`已把 ${n} ${KINDS[k].unit}移到 ${c}`);
+    });
+  },
+  askDelPicked: () => {
+    const t = top_(), k = t.k, ui = lists[k];
+    const names = of(k).filter(r => ui.picked.has(r.id)).map(title);
+    showConfirm(names.length === 1 ? `删除 ${names[0]}？` : `删除选中的 ${names.length} ${KINDS[k].unit}？`, '删除后不能恢复。', '删除', () => {
+      const n = ui.picked.size; delRecs(ui.picked); ui.sel = false; ui.picked.clear(); updateList(); toast(`已删除 ${n} ${KINDS[k].unit}`);
+    });
+  },
+  add: () => push({ s: 'edit', k: top_().k, id: null }),
+  edit: b => push({ s: 'edit', k: top_().k, id: b.dataset.id }),
+  formCat: b => { const t = top_(); t.form.cat = t.form.cat === b.dataset.c ? '' : b.dataset.c; renderEdit(t); },
+  toggleNewCat: () => { const t = top_(); t.newCatOpen = !t.newCatOpen; renderEdit(t); if (t.newCatOpen) document.getElementById('newCat').focus(); },
+  addNewCat: () => {
+    const t = top_(), n = t.newCat.trim();
+    if (validCat(t.k, n)) return;
+    addCatSilently(t.k, n); save(); t.form.cat = n; t.newCat = ''; t.newCatOpen = false; renderEdit(t);
+  },
+  save: b => doSave(!!b.dataset.keep),
+  askDelOne: () => {
+    const t = top_(), r = get(t.id);
+    showConfirm(r.kind === 'EMP' ? `删除 ${r.name}（${r.code}）？` : `删除 ${r.code}？`, '删除后不能恢复。', '删除', () => {
+      delRecs(new Set([r.id])); toast(`已删除 ${title(r)}`);
+      let n = 0; for (let i = stack.length - 1; i > 0 && stack[i].s !== 'list'; i--) n++;
+      back(n);
+    });
+  },
+  catKind: b => { top_().k = b.dataset.k; render(); },
+  catMove: b => { const t = top_(); moveCat(t.k, +b.dataset.i, +b.dataset.d); render(); },
+  catRename: b => { const t = top_(), old = D[t.k][+b.dataset.i]; showName('修改分类名称', old, v => validCat(t.k, v, old), v => { renameCat(t.k, old, v); render(); }); },
+  catDelete: b => {
+    const t = top_(), K = KINDS[t.k], c = D[t.k][+b.dataset.i], n = D.recs.filter(r => r.kind === t.k && r.cat === c).length;
+    showConfirm(`删除分类「${c}」？`, n ? `这个分类下的 ${n} ${K.unit}不会被删除，会变成「未分类」。` : `这个分类下没有${K.item}。`, '删除分类', () => { deleteCat(t.k, c); render(); });
+  },
+  catAdd: () => { const t = top_(); showName(`新建${KINDS[t.k].noun}分类`, '', v => validCat(t.k, v), v => { addCatSilently(t.k, v); save(); render(); }); },
+  csvImport: b => {
+    const k = b.dataset.k, K = KINDS[k];
+    pickFile(buf => {
+      const bytes = new Uint8Array(buf);
+      if (bytes[0] === 0x50 && bytes[1] === 0x4B) { showInfo('导入结果', '这是 xlsx 格式。请先在 WPS / Excel 里「另存为」CSV 格式，再导入那个 CSV 文件。'); return; }
+      const r = importCsv(k, decodeBytes(buf));
+      render();
+      showInfo('导入结果', (r.added === 0 && r.updated === 0) ? `没有导入任何${K.item}。请检查表格的列是否按说明排列。`
+        : `新增 ${r.added} ${K.unit}，更新 ${r.updated} ${K.unit}` + (r.skipped ? `，跳过 ${r.skipped} 行（缺编号${k === 'EMP' ? '或名字' : ''}，或编号重复）` : '') + '。');
+    });
+  },
+  csvShare: b => shareFile(csvName(b.dataset.k), exportCsv(b.dataset.k), 'text/csv'),
+  csvSave: b => downloadFile(csvName(b.dataset.k), exportCsv(b.dataset.k), 'text/csv'),
+  bakShare: () => shareFile(backupName(), JSON.stringify(toJson(), null, 2), 'application/json'),
+  bakSave: () => downloadFile(backupName(), JSON.stringify(toJson(), null, 2), 'application/json'),
+  bakRestore: () => pickFile(buf => {
+    try {
+      const o = JSON.parse(decodeBytes(buf));
+      if (!o || o.app !== 'staff-vehicle') throw 0;
+      showRestore(parseSnap(o));
+    } catch (e) { showInfo('打不开这个文件', '这不是员工联系方式的备份文件，或者文件已损坏。'); }
+  })
+};
+document.addEventListener('click', e => {
+  const b = e.target.closest('[data-act]'); if (!b) return;
+  if (b.disabled) return;
+  const f = A[b.dataset.act]; if (f) f(b, e);
+});
+
+/* ========= 启动 ========= */
+load();
+history.replaceState({ d: 1 }, '');
+render();
+if (navigator.storage && navigator.storage.persist) navigator.storage.persist().catch(() => {});
+if ('serviceWorker' in navigator && location.protocol === 'https:') navigator.serviceWorker.register('sw.js').catch(() => {});
+</script>
+</body>
+</html>
